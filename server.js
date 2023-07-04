@@ -32,7 +32,7 @@ app.use("/api/task", taskRoute);
 app.get("/", (req, res) => {
   res.send({
     success: true,
-    message: "Jai Shree Ram",
+    message: "API Testing Successfully",
   });
 });
 
