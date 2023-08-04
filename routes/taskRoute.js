@@ -1,35 +1,25 @@
 import { Router } from "express";
-import { requireSignIn } from "../middlewares/authMiddleware.js";
 import {
-  createTaskController,
-  deleteTaskController,
-  filterTaskController,
-  getAllTaskController,
-  getSingleTaskController,
-  searchTaskController,
-  updateTaskController,
+  createTask,
+  updateTask,
+  deteteTask,
+  getTask,
+  getTasks,
 } from "../controllers/taskController.js";
-
 const router = Router();
 
-// create tasks
-router.post("/create", requireSignIn, createTaskController);
+// for create the tasks
+router.post("/create/:userId", createTask);
 
-// update tasks
-router.put("/update/:taskId", requireSignIn, updateTaskController);
+// for update the tasks
+router.put("/update/:userId", updateTask);
 
-// delete tasks
-router.delete("/delete/:taskId", requireSignIn, deleteTaskController);
+// for detete the tasks
+router.delete("/delete/:_id", deteteTask);
 
-// filter tasks based on status
-router.get("/filter?", requireSignIn, filterTaskController);
+// for geting the tasks by user
+router.get("/get/:userId", getTask);
 
-// search tasks based on title or description
-router.post("/search", requireSignIn, searchTaskController);
+router.get("/admin/:userId", getTasks);
 
-// get single task
-router.get("/get-single/:taskId", requireSignIn, getSingleTaskController);
-
-// get all tasks
-router.get("/get-all", requireSignIn, getAllTaskController);
 export default router;

@@ -1,140 +1,83 @@
+import Task from "../models/Tasks.js";
 import createError from "../utils/Error.js";
-import Tasks from "../models/Tasks.js";
 
-// create tasks controller
-export const createTaskController = async (req, res, next) => {
+export const createTask = async (req, res, next) => {
   try {
-    const { title, description, dueDate, status } = req.body;
-
-    if (!title) {
-      return next(createError(400, "Title is required"));
-    }
-    if (!description) {
-      return next(createError(400, "Description is required"));
-    }
-    if (!dueDate) {
-      return next(createError(400, "Due Date is required"));
-    }
-    if (!status) {
-      return next(createError(400, "Status is required"));
-    }
-
-    const existingTask = await Tasks.findOne({ title: title });
-    if (existingTask) {
-      return next(createError(400, "This task already exists"));
-    }
-
-    console.log(req.user);
-
-    const newTask = await new Tasks({
-      userId: req.user,
-      title: title,
-      description: description,
-      dueDate: dueDate,
-      status: status,
+    const { userId } = req.params;
+    const { title, description, status } = req.body;
+    const task = await new Task({
+      userId: userId,
+      title,
+      description,
+      status,
     });
-    await newTask.save();
+    await task.save();
     res.status(201).send({
       success: true,
-      message: "User registered successfully",
-      task: newTask,
+      message: "Task Created Successfully",
     });
   } catch (error) {
-    return next(createError(500, "Error while creating task"));
+    return next(createError(error.status, error.message));
   }
 };
 
-// update task controller
-export const updateTaskController = async (req, res, next) => {
+export const updateTask = async (req, res, next) => {
   try {
-    const updateTask = await Tasks.findByIdAndUpdate(
-      { _id: req.params.taskId },
-      { ...req.body }
+    const { userId } = req.params;
+    await Task.findByIdAndUpdate(
+      { _id: userId },
+      { ...req.body },
+      { new: true }
     );
-    const task = await Tasks.findOne({ _id: updateTask._id });
-    res.status(200).send({
+    res.status(201).send({
       success: true,
-      message: "updating task",
-      task: task,
+      message: "Task update Successfully",
     });
   } catch (error) {
-    return next(createError(500, "Error while updating single tasks"));
+    next(error);
   }
 };
 
-// delete tasks controller
-export const deleteTaskController = async (req, res, next) => {
+export const deteteTask = async (req, res, next) => {
   try {
-    await Tasks.findByIdAndDelete({ _id: req.params.taskId });
+    const _id = req.params._id;
+    await Task.findByIdAndDelete(_id);
     res.status(200).send({
       success: true,
       message: "Task deleted successfully",
     });
   } catch (error) {
-    return next(createError(500, "Error while deleting tasks"));
+    return next(createError(error.status, error.message));
   }
 };
 
-// filter controller
-export const filterTaskController = async (req, res, next) => {
+export const getTask = async (req, res, next) => {
   try {
-    const { status } = req.query;
-    const tasks = await Tasks.find({ userId: req.user._id });
-    const filteredTasks = tasks.filter((task) => task.status === status);
+    const { userId } = req.params;
+    const tasks = await Task.find({ userId });
+
     res.status(200).send({
       success: true,
-      message: "filtered task successfully",
-      task: filteredTasks,
+      message: "Task get successfully",
+      tasks,
     });
   } catch (error) {
-    return next(createError(500, "Error while getting single tasks"));
+    next(error);
   }
 };
 
-// filter controller
-export const searchTaskController = async (req, res, next) => {
+export const getTasks = async (req, res, next) => {
   try {
-    const { title, description } = req.body;
+    const admin = await Task.findOne({ userName: req.params.userName });
+    if (!admin || !admin.isAdmin)
+      return next(createError(401, "Unauthorized access denied"));
 
-    const tasks = await Tasks.find({ userId: req.user._id });
-    const searchTasks = tasks.filter((task) =>
-      title ? task.title === title : task.description === description
+    const allUsersTasks = await Task.find();
+    const data = allUsersTasks.filter(
+      (user) => user.userName !== req.params.userName
     );
-    console.log(tasks);
-    res.status(200).send({
-      success: true,
-      message: "search task successfully based on title or description",
-      task: searchTasks,
-    });
+    res.status(200).json(data);
   } catch (error) {
-    return next(createError(500, "Error while getting single tasks"));
-  }
-};
-
-// get single tasks controller
-export const getSingleTaskController = async (req, res, next) => {
-  try {
-    const getSingleTask = await Tasks.findById({ _id: req.params.taskId });
-    res.status(200).send({
-      success: true,
-      message: "getting single task",
-      task: getSingleTask,
-    });
-  } catch (error) {
-    return next(createError(500, "Error while getting single tasks"));
-  }
-};
-
-// get all tasks controller
-export const getAllTaskController = async (req, res, next) => {
-  try {
-    const getTasks = await Tasks.find({ userId: req.user._id });
-    res.status(200).send({
-      success: true,
-      message: "getting all tasks",
-      tasks: getTasks,
-    });
-  } catch (error) {
-    return next(createError(500, "Error while getting all tasks"));
+    next(error);
   }
 };

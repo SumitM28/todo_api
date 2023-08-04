@@ -1,23 +1,34 @@
 import mongoose from "mongoose";
-
-const userScheme = mongoose.Schema(
+var validateEmail = function (email) {
+  var re = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+  return re.test(email);
+};
+const userSchema = new mongoose.Schema(
   {
-    name: {
+    userName: {
       type: String,
+      unique: true,
       required: true,
-      trim: true,
     },
     email: {
       type: String,
-      required: true,
       unique: true,
+      required: true,
+      lowercase: true,
+      validate: [validateEmail, "Please fill a valid email address"],
     },
     password: {
-      type: String,
       require: true,
+      type: String,
+    },
+    isAdmin: {
+      type: Boolean,
+      default: false,
     },
   },
-  { timestamp: true }
+  {
+    timestamps: true,
+  }
 );
 
-export default mongoose.model("users", userScheme);
+export default mongoose.model("user", userSchema);

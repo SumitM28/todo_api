@@ -1,96 +1,85 @@
+import User from "../models/User.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import createError from "../utils/Error.js";
-import { comparePassword, hashPassword } from "../utils/authUtils.js";
-import JWT from "jsonwebtoken";
-import userModel from "../models/User.js";
-// register controller
-export const registerController = async (req, res, next) => {
+
+// register user
+export const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, address, phone, question } = req.body;
-
-    // validataion
-    if (!name) {
-      return next(createError(400, "Name is required"));
-    }
-    if (!email) {
-      return next(createError(400, "Email is required"));
-    }
-    if (!password) {
-      return next(createError(400, "Password is required"));
-    }
-
-    //existing user
-    const existingUser = await userModel.findOne({ email: email });
-
+    const { userName, email, password } = req.body;
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(200).send({
         success: false,
-        message: "Already Registered Please Login",
+        message: "User already registered, Please login!",
       });
     }
-
-    // register user
-    const hashedPassword = await hashPassword(password);
-    const newUser = await new userModel({
-      name: name,
+    const saltRounds = 10;
+    const salt = bcrypt.genSaltSync(saltRounds);
+    const hashedPassword = bcrypt.hashSync(req.body.password, salt);
+    const newUser = new User({
+      userName: userName,
       email: email,
       password: hashedPassword,
-      phone: phone,
-      address: address,
-      question: question,
+      tasks: [],
     });
-    await newUser.save();
 
+    await newUser.save();
     res.status(201).send({
       success: true,
       message: "User registered successfully",
-      user: newUser,
+      newUser,
     });
-  } catch (error) {
-    return next(createError(500, "Error in registration"));
+  } catch (err) {
+    return next(createError(err.status, err.message));
   }
 };
 
-// login controller
-export const loginController = async (req, res, next) => {
+// login user
+
+export const loginUser = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) return next(createError(404, "User not found!"));
 
-    // validation
-    if (!email || !password) {
-      return next(createError(400, "Invalid email or password"));
-    }
+    bcrypt.compare(req.body.password, user.password, (err, isPassword) => {
+      if (err || !isPassword) {
+        return next(createError(404, "Invalidd email or password!"));
+      } else {
+        const token = jwt.sign(
+          {
+            id: user._id,
+            isAdmin: user.isAdmin,
+          },
+          process.env.JWT
+        );
 
-    // check user
-    const user = await userModel.findOne({ email: email });
-    if (!user) {
-      return next(createError(404, "User not found"));
-    }
+        res
+          .cookie("access_token", token, {
+            httpOnly: true,
+          })
+          .json({
+            success: true,
+            message: "User login successfully",
+            user,
+          });
+      }
+    });
+  } catch (err) {
+    return next(createError(err.status, err.message));
+  }
+};
 
-    const matchPassword = await comparePassword(password, user.password);
-    if (!matchPassword) {
-      return next(createError(200, "Invalid Password"));
-    }
-
-    // token creation
-    const token = await JWT.sign(
-      { _id: user._id },
-      process.env.JWT_SECRET_KEY,
-      { expiresIn: "7d" }
-    );
+export const userInfo = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
     res.status(200).send({
       success: true,
-      message: "Login successfully",
-      user: {
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        question: user.question,
-        isAdmin: user.isAdmin,
-      },
-      token,
+      messsage: "User getting successfully",
+      user,
     });
   } catch (error) {
-    return next(createError(error.status, error.message));
+    return next(createError(err.status, err.message));
   }
 };
