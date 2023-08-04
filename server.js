@@ -4,8 +4,8 @@ import mongoose from "mongoose";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import authRoute from "./routes/authRoute.js";
-import taskRoute from "./routes/taskRoute.js";
+import authRoute from "../backend/routes/auth.js";
+import taskRoute from "../backend/routes/tasks.js";
 const PORT = process.env.PORT || 4500;
 // setting up .env file
 dotenv.config();
